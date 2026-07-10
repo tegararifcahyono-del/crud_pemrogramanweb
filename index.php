@@ -2,7 +2,7 @@
 // 1. Hubungkan ke database menggunakan file config Anda
 include_once("config.php"); 
 
-// 2. PROSES SIMPAN DATA
+// 2. PROSES SIMPAN DATA (Jika form disubmit)
 if (isset($_POST['Submit'])) {
     $nama_alat = $_POST['nama_alat'];
     $tahun     = $_POST['tahun'];
@@ -13,15 +13,25 @@ if (isset($_POST['Submit'])) {
     $result = mysqli_query($mysqli, $query);
 
     if ($result) {
-        header("Location: " . $_SERVER['PHP_SELF']);
+        header("Location: index.php");
         exit;
     } else {
         echo "<script>alert('Gagal menambahkan data: " . mysqli_error($mysqli) . "');</script>";
     }
 }
 
-// 3. AMBIL DATA UTK TABEL
-$result = mysqli_query($mysqli, "SELECT * FROM alat ORDER BY id DESC"); 
+// 3. LOGIKA PENCARIAN & AMBIL DATA UTK TABEL
+// Cek apakah tombol cari diklik atau ada parameter 'cari' di URL
+if (isset($_GET['cari']) && $_GET['cari'] != '') {
+    $keyword = mysqli_real_escape_string($mysqli, $_GET['cari']);
+    // Mencari data yang cocok di kolom nama_alat, merek, atau lokasi
+    $query_tampil = "SELECT * FROM alat WHERE nama_alat LIKE '%$keyword%' OR merek LIKE '%$keyword%' OR lokasi LIKE '%$keyword%' ORDER BY id DESC";
+} else {
+    // Jika tidak sedang mencari, tampilkan semua data seperti biasa
+    $query_tampil = "SELECT * FROM alat ORDER BY id DESC";
+}
+
+$result = mysqli_query($mysqli, $query_tampil);
 ?> 
  
 <!DOCTYPE html> 
@@ -51,6 +61,15 @@ $result = mysqli_query($mysqli, "SELECT * FROM alat ORDER BY id DESC");
         .btn-simpan { width: 100%; padding: 12px; background-color: #1cc88a; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s; }
         .btn-simpan:hover { background-color: #17a673; }
 
+        /* Style untuk Search Bar */
+        .search-container { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .search-input { flex: 1; padding: 10px 12px; border: 1px solid #d1d3e2; border-radius: 5px; font-size: 14px; }
+        .search-input:focus { outline: none; border-color: #4e73df; }
+        .btn-cari { padding: 10px 20px; background-color: #4e73df; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .btn-cari:hover { background-color: #2e59d9; }
+        .btn-reset { padding: 10px 15px; background-color: #858796; color: white; text-decoration: none; border-radius: 5px; font-size: 14px; font-weight: bold; text-align: center; }
+        .btn-reset:hover { background-color: #717384; }
+
         /* Table Style */
         .table-title { margin-top: 0; margin-bottom: 20px; color: #333; font-size: 1.5rem; }
         .table-responsive { width: 100%; overflow-x: auto; }
@@ -66,6 +85,8 @@ $result = mysqli_query($mysqli, "SELECT * FROM alat ORDER BY id DESC");
         .btn-edit:hover { background-color: #dfa515; }
         .btn-delete { background-color: #e74a3b; color: #fff; }
         .btn-delete:hover { background-color: #be2617; }
+        
+        .text-empty { text-align: center; color: #858796; font-style: italic; }
     </style> 
 </head> 
 <body> 
@@ -96,6 +117,17 @@ $result = mysqli_query($mysqli, "SELECT * FROM alat ORDER BY id DESC");
 
         <div class="card">
             <h2 class="table-title">Daftar Data Alat</h2>
+            
+            <form action="" method="get">
+                <div class="search-container">
+                    <input type="text" name="cari" class="search-input" placeholder="Cari berdasarkan nama alat, merek, atau lokasi..." value="<?php echo isset($_GET['cari']) ? htmlspecialchars($_GET['cari']) : ''; ?>">
+                    <button type="submit" class="btn-cari">Cari</button>
+                    <?php if (isset($_GET['cari']) && $_GET['cari'] != ''): ?>
+                        <a href="index.php" class="btn-reset">Reset</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+
             <div class="table-responsive">
                 <table> 
                     <thead>
@@ -109,18 +141,24 @@ $result = mysqli_query($mysqli, "SELECT * FROM alat ORDER BY id DESC");
                     </thead>
                     <tbody>
                         <?php 
-                        while($user_data = mysqli_fetch_array($result)) { 
-                            echo "<tr>"; 
-                            echo "<td><strong>".$user_data['nama_alat']."</strong></td>"; 
-                            echo "<td>".$user_data['tahun']."</td>"; 
-                            echo "<td>".$user_data['merek']."</td>"; 
-                            echo "<td>".$user_data['lokasi']."</td>"; 
-                            echo "<td>
-                                    <a href='edit.php?id=$user_data[id]' class='btn-action btn-edit'>Edit</a>
-                                    <a href='delete.php?id=$user_data[id]' class='btn-action btn-delete' onclick='return confirm(\"Yakin ingin menghapus data ini?\")'>Delete</a>
-                                  </td>";
-                            echo "</tr>"; 
-                        } 
+                        // Jika data ditemukan, lakukan looping data
+                        if (mysqli_num_rows($result) > 0) {
+                            while($user_data = mysqli_fetch_array($result)) { 
+                                echo "<tr>"; 
+                                echo "<td><strong>".$user_data['nama_alat']."</strong></td>"; 
+                                echo "<td>".$user_data['tahun']."</td>"; 
+                                echo "<td>".$user_data['merek']."</td>"; 
+                                echo "<td>".$user_data['lokasi']."</td>"; 
+                                echo "<td>
+                                        <a href='edit.php?id=$user_data[id]' class='btn-action btn-edit'>Edit</a>
+                                        <a href='delete.php?id=$user_data[id]' class='btn-action btn-delete' onclick='return confirm(\"Yakin ingin menghapus data ini?\")'>Delete</a>
+                                      </td>";
+                                echo "</tr>"; 
+                            } 
+                        } else {
+                            // Tampilkan pesan jika data yang dicari tidak ditemukan
+                            echo "<tr><td colspan='5' class='text-empty'>Data tidak ditemukan atau inventaris masih kosong.</td></tr>";
+                        }
                         ?>
                     </tbody>
                 </table> 
