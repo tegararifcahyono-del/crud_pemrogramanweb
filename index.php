@@ -164,6 +164,11 @@ $result = mysqli_query($mysqli, $query_tampil);
                 </table> 
             </div>
         </div>
+       <footer style="text-align: center; margin-top: 40px; padding: 20px 0; color: #5a5c69; font-size: 14px; border-top: 1px solid #e3e6f0; width: 100%;">
+        Aplikasi dikembangkan oleh: <strong>Tegar Arif Cahyono 2202505072</strong>
+    </footer>
+</body>
+    </div>
     </div>
 
 </body> 
